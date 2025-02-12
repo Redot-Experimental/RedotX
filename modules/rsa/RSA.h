@@ -44,6 +44,7 @@ private:
 	void set_pubkey(std::string);
 	void set_privkey(std::string);
 	void set_modulus(std::string);
+	std::string convert_string(std::string);
 	std::string encrypt(mpz_t);
 	std::string decrypt(mpz_t);
 	std::string get_pubkey();

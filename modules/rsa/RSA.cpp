@@ -32,6 +32,8 @@
 
 #include <ctime>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 #include "../../thirdparty/gmp/gmp.h"
 #include "../../thirdparty/gmp/gmpxx.h"
@@ -260,6 +262,62 @@ std::string rsa::decrypt(mpz_t emsg) {
 	return msg;
 }
 
+std::string rsa::convert_string(std::string s) {
+	/*
+	 * Converts given string to a big number
+	 * that is to be encoded.
+	 */
+
+	std::string ciphertext;
+	std::string tmp;
+	mpz_t plaintext_num;
+	mpz_init(plaintext_num);
+
+	// Quick init padding.
+	tmp.append("999");
+
+	for (int c : s) {
+		// std::string(c) won't append?
+		std::stringstream ss;
+		ss << c;
+		std::string zz = ss.str();
+
+		// We are working in triples.
+		if (zz.size() == 2) {
+			tmp.append("0");
+		}
+		tmp.append(zz);
+	}
+
+	// Need to convert to mpz_t
+	mpz_set_str(plaintext_num, tmp.c_str(), BASE);
+	ciphertext = encrypt(plaintext_num);
+	mpz_clear(plaintext_num);
+
+	std::cout << "encrypted: " << ciphertext << std::endl;
+
+	// decrypt
+	mpz_init(plaintext_num);
+	mpz_set_str(plaintext_num, ciphertext.c_str(), BASE);
+	std::string dmsg = decrypt(plaintext_num);
+
+	std::string fully_decrypted_message;
+
+	// message is stored in triples.
+	for (long unsigned int i = 3; i < dmsg.length(); i += 3) {
+		// starting at 3 to skip init padding.
+		if (dmsg.substr(i, 3).at(0) == '0') {
+			fully_decrypted_message += char(stoi(dmsg.substr(i + 1, 2)));
+		} else {
+			fully_decrypted_message += char(stoi(dmsg.substr(i, 3)));
+		}
+	}
+
+	std::cout << "decrypted message: " << fully_decrypted_message << std::endl;
+
+	return fully_decrypted_message;
+}
+
 void rsa::print() {
 	/*
 	 * This is simply testing to make sure things work.
@@ -268,30 +326,12 @@ void rsa::print() {
 
 	generate_keys();
 
-	std::cout << "pubkey: " << get_pubkey() << std::endl;
-	std::cout << "privkey: " << get_privkey() << std::endl;
-	std::cout << "modulo: " << get_modulus() << std::endl;
+	//std::string test_string = "ABCDEFGHIJLKMNOPQRSTUVWXYZabcdefghijlkmnopqrstuvwxyz01234567890";
+	std::string test_string = "Hello Redot. 1234567890. Goodbye Godot.";
 
-	mpz_t msg;
-	mpz_init(msg);
-	mpz_set_ui(msg, 97); // ASCII: A
-
-	std::cout << "plaintext: 97" << std::endl;
-
-	// ENCRYPT MESSAGE:
-	mpz_t encrypted_msg;
-	mpz_init(encrypted_msg);
-	mpz_set_str(encrypted_msg, encrypt(msg).c_str(), BASE);
-	std::string enc_msg = mpz_get_str(NULL, BASE, encrypted_msg);
-
-	std::cout << "encrypted: " << enc_msg << std::endl;
-
-	mpz_t decrypted_msg;
-	mpz_init(decrypted_msg);
-	mpz_set_str(decrypted_msg, decrypt(encrypted_msg).c_str(), BASE);
-	std::string dec_msg = mpz_get_str(NULL, BASE, decrypted_msg);
-
-	std::cout << "decrypted: " << dec_msg << std::endl;
+	std::cout << "----" << std::endl;
+	std::cout << "plaintext: " << test_string << std::endl;
+	std::cout << convert_string(test_string) << std::endl;
 }
 
 int main() {
